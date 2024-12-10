@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     actor_learning_rate = 0.001
     critic_learning_rate = 0.001
-    batch_size = 2048
+    batch_size = 128
     layer1_size = 256
     layer2_size = 128
 

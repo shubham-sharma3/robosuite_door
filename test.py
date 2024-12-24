@@ -42,7 +42,7 @@ if __name__ == '__main__':
                   env=env, n_actions=env.action_space.shape[0], layer1_size=layer1_size, layer2_size=layer2_size,
                   batch_size=batch_size)
 
-    n_games = 1
+    n_games = 3
     best_score = 0
     episode_identifier = f"0 - actor_learning_rate={actor_learning_rate} critic_leanring_rate={critic_learning_rate} layer1_size={layer1_size} layer2_size={layer2_size}"
 

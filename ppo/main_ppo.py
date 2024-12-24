@@ -3,6 +3,7 @@ from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from ppo_torch import PPOAgent
+import torch
 
 if __name__ == '__main__':
 

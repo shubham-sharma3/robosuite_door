@@ -1,5 +1,3 @@
-# main_ppo.py
-
 import os
 from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite

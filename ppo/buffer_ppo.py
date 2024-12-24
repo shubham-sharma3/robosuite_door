@@ -1,5 +1,3 @@
-# buffer_ppo.py
-
 import numpy as np
 
 class PPORolloutBuffer:

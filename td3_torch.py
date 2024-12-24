@@ -1,8 +1,7 @@
-import os
 import torch
 import torch.nn.functional as F
 import numpy as np
-from buffer import ReplayBuffer
+from Trash.buffer import ReplayBuffer
 from networks import CriticNetwork, ActorNetwork
 
 

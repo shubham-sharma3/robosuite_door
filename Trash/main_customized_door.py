@@ -1,17 +1,22 @@
+import time
 import os
+import gym
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
+from networks import CriticNetwork, ActorNetwork
+from buffer import ReplayBuffer
 from td3_torch import Agent
 
 if __name__ == '__main__':
 
-    if not os.path.exists("tmp/td3"):
-        os.makedirs("tmp/td3")
+    if not os.path.exists("../tmp/td3"):
+        os.makedirs("../tmp/td3")
     else:
         pass
 
-    env_name = "Door"
+    env_name = "Wipe"
 
     env = suite.make(
         env_name,
@@ -19,7 +24,7 @@ if __name__ == '__main__':
         controller_configs=suite.load_controller_config(default_controller="JOINT_VELOCITY"),
         has_renderer=False,
         use_camera_obs=False,
-        horizon=300,
+        horizon=200,
         reward_shaping=True,
         control_freq=20,
     )
@@ -36,7 +41,7 @@ if __name__ == '__main__':
                   env=env, n_actions=env.action_space.shape[0], layer1_size=layer1_size, layer2_size=layer2_size, batch_size=batch_size)
     #print(env.observation_space.shape)
 
-    writer = SummaryWriter('logs')
+    writer = SummaryWriter('../logs')
     n_games = 10000
     best_score = 0
     episode_identifier = f"0 - actor_learning_rate={actor_learning_rate} critic_leanring_rate={critic_learning_rate} layer1_size={layer1_size} layer2_size={layer2_size}"
@@ -67,3 +72,5 @@ if __name__ == '__main__':
             agent.save_models()
 
         print(f"Episode: {i} Score: {score}")
+
+

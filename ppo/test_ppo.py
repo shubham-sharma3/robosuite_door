@@ -26,9 +26,11 @@ if __name__ == '__main__':
         env_name,
         robots=["Panda"],
         controller_configs=suite.load_controller_config(default_controller="JOINT_VELOCITY"),
-        has_renderer=False,
+        has_renderer=True,
         use_camera_obs=False,
         horizon=300,
+        render_camera="frontview",
+        has_offscreen_renderer=True,
         reward_shaping=True,
         control_freq=20,
     )
@@ -36,14 +38,14 @@ if __name__ == '__main__':
     env = GymWrapper(env)
 
     # Hyperparameters
-    lr_actor = 0.0001
-    lr_critic = 0.0003
-    gamma = 0.98
+    lr_actor = 3e-4
+    lr_critic = 1e-3
+    gamma = 0.99
     K_epochs = 80
-    eps_clip = 0.1
+    eps_clip = 0.2
     buffer_size = 2048
-    batch_size = 128
-    entropy_coeff = 0.005
+    batch_size = 64
+    entropy_coeff = 0.01
 
     input_dims = env.observation_space.shape
     n_actions = env.action_space.shape[0]
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     writer = SummaryWriter('logs/ppo')
 
     # Number of training episodes
-    n_games = 10000
+    n_games = 3
 
     # Episode identifier for logging
     episode_identifier = f"PPO - lr_actor={lr_actor} lr_critic={lr_critic} K_epochs={K_epochs} eps_clip={eps_clip}"
@@ -83,20 +85,10 @@ if __name__ == '__main__':
         while not done:
             action, log_prob = agent.choose_action(state)
             next_state, reward, done, extra, info = env.step(action)
+            env.render()
             score += reward
-            agent.remember(state, action, log_prob, reward, done)
+
             state = next_state
-
-        # Update PPO agent after each episode
-        agent.update()
-
-        # Log the score
-        writer.add_scalar(f"Score - {episode_identifier}", score, global_step=i)
-
-        # Save models every 10 episodes
-        if i % 10 == 0:
-            agent.save_models()
 
         print(f"Episode: {i} Score: {score}")
 
-    writer.close()

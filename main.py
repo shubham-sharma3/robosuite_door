@@ -3,8 +3,14 @@ from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
 from td3_torch import Agent
+import torch
 
 if __name__ == '__main__':
+    # Check if CUDA (GPU) is available
+    if torch.cuda.is_available():
+        print(f"CUDA is available. Training will use GPU.")
+    else:
+        print(f"CUDA is NOT available. Training will use CPU.")
 
     if not os.path.exists("tmp/td3"):
         os.makedirs("tmp/td3")

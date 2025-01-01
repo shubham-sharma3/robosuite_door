@@ -29,6 +29,7 @@ if __name__ == '__main__':
         control_freq=20,
     )
 
+
     env = GymWrapper(env)
 
     actor_learning_rate = 0.001

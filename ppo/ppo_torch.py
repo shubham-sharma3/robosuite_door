@@ -27,9 +27,16 @@ class PPOAgent:
 
         self.device = device if device else torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+        # Print device information
+        print(f"Using device: {self.device}")
+
         # Initialize actor and critic networks
         self.actor = ActorNetwork(input_dims, n_actions=n_actions, checkpoint_dir='tmp/ppo').to(self.device)
         self.critic = CriticNetwork(input_dims, n_actions=n_actions, checkpoint_dir='tmp/ppo').to(self.device)
+
+        # Print device for the models
+        print(f"Actor model is on device: {next(self.actor.parameters()).device}")
+        print(f"Critic model is on device: {next(self.critic.parameters()).device}")
 
         # Initialize old actor for calculating log probabilities
         self.policy_old = ActorNetwork(input_dims, n_actions=n_actions, checkpoint_dir='tmp/ppo').to(self.device)
@@ -56,7 +63,7 @@ class PPOAgent:
         action_clipped = torch.tanh(action)
         log_prob = dist.log_prob(action).sum(dim=-1)
         # Adjust log_prob for tanh transformation
-        log_prob -= (2*(torch.log(2) - action - nn.functional.softplus(-2*action))).sum(dim=-1)
+        log_prob -= (2*(torch.log(torch.tensor(2.0)) - action - nn.functional.softplus(-2*action))).sum(dim=-1)
         return action_clipped.cpu().numpy(), log_prob.cpu().numpy()
 
     def remember(self, state, action, log_prob, reward, done):

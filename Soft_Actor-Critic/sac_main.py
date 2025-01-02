@@ -1,5 +1,3 @@
-# sac_main.py
-
 import os
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -45,13 +43,13 @@ def main():
     LOG_INTERVAL = 1  # Save models and log every 10 episodes
 
     # SAC Hyperparameters
-    ALPHA = 0.2  # Entropy coefficient
-    GAMMA = 0.99  # Discount factor
+    ALPHA = 0.4  # Entropy coefficient
+    GAMMA = 0.98  # Discount factor
     TAU = 0.005  # Soft update parameter for target networks
-    LR_ACTOR = 3e-4  # Learning rate for Actor network
-    LR_CRITIC = 3e-4  # Learning rate for Critic networks
+    LR_ACTOR = 0.05  # Learning rate for Actor network
+    LR_CRITIC = 0.05  # Learning rate for Critic networks
     MAX_SIZE = 1000000  # Replay buffer size
-    BATCH_SIZE = 256  # Mini-batch size for updates
+    BATCH_SIZE = 128  # Mini-batch size for updates
 
     # =======================
     # Initialize Environment

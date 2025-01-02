@@ -1,5 +1,3 @@
-# sac_test.py
-
 import os
 import torch
 from sac_torch import SACAgent
@@ -7,6 +5,7 @@ import robosuite as suite
 from robosuite.wrappers import GymWrapper
 import numpy as np
 import time
+
 
 def set_seed(seed=42):
     """Set random seeds for reproducibility."""
@@ -16,6 +15,7 @@ def set_seed(seed=42):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
 
 def main():
     # =======================
@@ -33,19 +33,21 @@ def main():
     USE_CAMERA_OBS = False
     HORIZON = 300
     REWARD_SHAPING = True
+    RENDERER_CAMERA = "frontview"
+    HAS_OFFSCREEN_RENDERER =True
     CONTROL_FREQ = 20
 
     # Testing Configuration
     TEST_EPISODES = 5               # Number of test episodes to run
 
-    # SAC Hyperparameters (should match training)
-    ALPHA = 0.2
-    GAMMA = 0.99
-    TAU = 0.005
-    LR_ACTOR = 3e-4
-    LR_CRITIC = 3e-4
-    MAX_SIZE = 1000000
-    BATCH_SIZE = 256
+    # SAC Hyperparameters
+    ALPHA = 0.4  # Entropy coefficient
+    GAMMA = 0.99  # Discount factor
+    TAU = 0.005  # Soft update parameter for target networks
+    LR_ACTOR = 0.05  # Learning rate for Actor network
+    LR_CRITIC = 0.05  # Learning rate for Critic networks
+    MAX_SIZE = 1000000  # Replay buffer size
+    BATCH_SIZE = 128  # Mini-batch size for updates
 
     # Model Checkpoint Path
     MODEL_PATH = "tmp/sac/actor.pth"
@@ -65,6 +67,8 @@ def main():
         has_renderer=HAS_RENDERER,
         use_camera_obs=USE_CAMERA_OBS,
         horizon=HORIZON,
+        render_camera=RENDERER_CAMERA,
+        has_offscreen_renderer=HAS_OFFSCREEN_RENDERER,
         reward_shaping=REWARD_SHAPING,
         control_freq=CONTROL_FREQ,
     )
@@ -131,8 +135,7 @@ def main():
             # Update state
             state = next_state
 
-            # Optional: Control the rendering speed
-            time.sleep(0.02)  # Sleep for 20ms to control rendering speed (~50 FPS)
+            env.render()
 
         print(f"Test Episode: {episode} | Score: {score}")
 

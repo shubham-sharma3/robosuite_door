@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
         writer.add_scalar(f"Score - {episode_identifier}", score, global_step=i)
 
-        if i % 10:
+        if i % 10 == 0:
             agent.save_models()
 
         print(f"Episode: {i} Score: {score}")

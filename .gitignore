@@ -161,9 +161,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
-logs
+TD3/logs
 
-tmp
+TD3/tmp
 
 
 

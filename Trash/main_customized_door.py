@@ -1,18 +1,15 @@
 import time
 import os
-import gym
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
-from networks import CriticNetwork, ActorNetwork
-from buffer import ReplayBuffer
 from td3_torch import Agent
 
 if __name__ == '__main__':
 
-    if not os.path.exists("../tmp/td3"):
-        os.makedirs("../tmp/td3")
+    if not os.path.exists("../TD3/tmp/td3"):
+        os.makedirs("../TD3/tmp/td3")
     else:
         pass
 
@@ -41,7 +38,7 @@ if __name__ == '__main__':
                   env=env, n_actions=env.action_space.shape[0], layer1_size=layer1_size, layer2_size=layer2_size, batch_size=batch_size)
     #print(env.observation_space.shape)
 
-    writer = SummaryWriter('../logs')
+    writer = SummaryWriter('../TD3/logs')
     n_games = 10000
     best_score = 0
     episode_identifier = f"0 - actor_learning_rate={actor_learning_rate} critic_leanring_rate={critic_learning_rate} layer1_size={layer1_size} layer2_size={layer2_size}"

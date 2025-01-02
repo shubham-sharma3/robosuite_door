@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, input_dims, fc1_dims=256, fc2_dims=256, n_actions=2, name='actor'):
+    def __init__(self, input_dims, fc1_dims=256, fc2_dims=128, n_actions=2, name='actor'):
         super(ActorNetwork, self).__init__()
         self.fc1 = nn.Linear(*input_dims, fc1_dims)
         self.fc2 = nn.Linear(fc1_dims, fc2_dims)
@@ -31,7 +31,7 @@ class ActorNetwork(nn.Module):
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_dims, fc1_dims=256, fc2_dims=256, n_actions=2, name='critic'):
+    def __init__(self, input_dims, fc1_dims=256, fc2_dims=128, n_actions=2, name='critic'):
         super(CriticNetwork, self).__init__()
         # Q1 architecture
         self.fc1 = nn.Linear(*input_dims, fc1_dims)

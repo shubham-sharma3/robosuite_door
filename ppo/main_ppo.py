@@ -36,14 +36,14 @@ if __name__ == '__main__':
     env = GymWrapper(env)
 
     # Hyperparameters
-    lr_actor = 0.0001
-    lr_critic = 0.0003
-    gamma = 0.98
+    lr_actor = 0.01
+    lr_critic = 0.03
+    gamma = 0.99
     K_epochs = 80
-    eps_clip = 0.1
-    buffer_size = 2048
+    eps_clip = 0.2
+    buffer_size = 4096
     batch_size = 128
-    entropy_coeff = 0.005
+    entropy_coeff = 0.01
 
     input_dims = env.observation_space.shape
     n_actions = env.action_space.shape[0]

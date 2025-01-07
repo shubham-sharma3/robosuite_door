@@ -1,15 +1,15 @@
 import os
 import torch
-from sac_torch import SACAgent
+from torch.utils.tensorboard import SummaryWriter
 import robosuite as suite
 from robosuite.wrappers import GymWrapper
+from sac_torch import SACAgent
 import numpy as np
-import time
+import random
 
 
 def set_seed(seed=42):
     """Set random seeds for reproducibility."""
-    import random
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -18,9 +18,11 @@ def set_seed(seed=42):
 
 
 def main():
-    # =======================
-    # Configuration Parameters
-    # =======================
+    # Check if CUDA (GPU) is available
+    if torch.cuda.is_available():
+        print(f"CUDA is available. Training will use GPU.")
+    else:
+        print(f"CUDA is NOT available. Training will use CPU.")
 
     # Random Seed for Reproducibility
     SEED = 42
@@ -29,28 +31,25 @@ def main():
     ENV_NAME = "Door"
     ROBOTS = ["Panda"]
     CONTROLLER = "JOINT_VELOCITY"
-    HAS_RENDERER = True            # Enable rendering for visualization
+    HAS_RENDERER = True
     USE_CAMERA_OBS = False
     HORIZON = 300
     REWARD_SHAPING = True
-    RENDERER_CAMERA = "frontview"
-    HAS_OFFSCREEN_RENDERER =True
     CONTROL_FREQ = 20
 
-    # Testing Configuration
-    TEST_EPISODES = 5               # Number of test episodes to run
+    # Training Configuration
+    MAX_EPISODES = 3
+    MAX_TIMESTEPS = 300
+    LOG_INTERVAL = 10  # Save models and log every 10 episodes
 
     # SAC Hyperparameters
-    ALPHA = 0.4  # Entropy coefficient
-    GAMMA = 0.99  # Discount factor
+    ALPHA = 0.4  # Initial Entropy coefficient (will be overridden if using auto-tuning)
+    GAMMA = 0.98  # Discount factor
     TAU = 0.005  # Soft update parameter for target networks
-    LR_ACTOR = 0.05  # Learning rate for Actor network
-    LR_CRITIC = 0.05  # Learning rate for Critic networks
+    LR_ACTOR = 3e-4  # Learning rate for Actor network
+    LR_CRITIC = 3e-4  # Learning rate for Critic networks
     MAX_SIZE = 1000000  # Replay buffer size
     BATCH_SIZE = 128  # Mini-batch size for updates
-
-    # Model Checkpoint Path
-    MODEL_PATH = "tmp/sac/actor.pth"
 
     # =======================
     # Initialize Environment
@@ -59,7 +58,14 @@ def main():
     # Set random seeds
     set_seed(SEED)
 
-    # Create Robosuite environment with rendering enabled
+    # Create directories for saving models and logs
+    os.makedirs("tmp/sac", exist_ok=True)
+    os.makedirs("logs/sac", exist_ok=True)
+
+    # Initialize TensorBoard writer
+    writer = SummaryWriter('logs/sac')
+
+    # Create Robosuite environment
     env = suite.make(
         ENV_NAME,
         robots=ROBOTS,
@@ -67,8 +73,6 @@ def main():
         has_renderer=HAS_RENDERER,
         use_camera_obs=USE_CAMERA_OBS,
         horizon=HORIZON,
-        render_camera=RENDERER_CAMERA,
-        has_offscreen_renderer=HAS_OFFSCREEN_RENDERER,
         reward_shaping=REWARD_SHAPING,
         control_freq=CONTROL_FREQ,
     )
@@ -79,6 +83,12 @@ def main():
     # Extract environment dimensions
     input_dims = env.observation_space.shape
     n_actions = env.action_space.shape[0]
+    action_low = env.action_space.low
+    action_high = env.action_space.high
+
+    # Calculate action scaling parameters
+    action_scale = (action_high - action_low) / 2.0
+    action_bias = (action_high + action_low) / 2.0
 
     # =======================
     # Initialize SAC Agent
@@ -87,7 +97,7 @@ def main():
     # Define device (GPU if available, else CPU)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    # Initialize SAC agent with the defined hyperparameters
+    # Initialize SAC agent with the defined hyperparameters and action scaling
     agent = SACAgent(
         input_dims=input_dims,
         n_actions=n_actions,
@@ -98,50 +108,49 @@ def main():
         lr_critic=LR_CRITIC,
         max_size=MAX_SIZE,
         batch_size=BATCH_SIZE,
-        device=device
+        device=device,
+        action_scale=action_scale,
+        action_bias=action_bias,
+        target_entropy=-n_actions  # For automatic entropy tuning
     )
 
-    # Load the trained Actor model
-    if os.path.exists(MODEL_PATH):
-        agent.actor.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-        agent.actor.eval()  # Set the Actor network to evaluation mode
-        print("Actor model loaded successfully.")
-    else:
-        print(f"Actor model not found at {MODEL_PATH}. Please ensure the model is trained and saved.")
-        return
+    # Load existing models if available; otherwise, start from scratch
+    agent.load_models()
 
     # =======================
-    # Testing Loop
+    # Training Loop
     # =======================
 
-    for episode in range(1, TEST_EPISODES + 1):
+    for episode in range(1, MAX_EPISODES + 1):
         state, _ = env.reset()
         done = False
         score = 0
 
-        print(f"\nStarting Test Episode: {episode}")
-
-        while not done:
-            # Choose action without exploration noise (deterministic)
-            with torch.no_grad():
-                state_tensor = torch.FloatTensor(state).unsqueeze(0).to(device)
-                mean, std = agent.actor(state_tensor)
-                action = torch.tanh(mean).cpu().numpy()[0]  # Deterministic action (mean action)
+        for t in range(MAX_TIMESTEPS):
+            # Choose action based on current state
+            action, log_prob = agent.choose_action(state)
 
             # Execute action in the environment
-            next_state, reward, done, extra, info = env.step(action)
+            next_state, reward, done, _,  info = env.step(action)
             score += reward
+
+            env.render()
 
             # Update state
             state = next_state
 
-            env.render()
+            if done:
+                break
 
-        print(f"Test Episode: {episode} | Score: {score}")
+        # Update SAC agent after each episode
+        agent.update()
 
-    # Close the environment after testing
+        print(f"Episode: {episode} | Score: {score:.2f} | Alpha: {agent.alpha.item():.4f}")
+
+    # Close the environment and TensorBoard writer
     env.close()
-    print("\nTesting completed.")
+    writer.close()
+
 
 if __name__ == '__main__':
     main()

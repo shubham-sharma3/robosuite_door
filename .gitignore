@@ -167,6 +167,14 @@ TD3/tmp
 
 Trash
 
+Soft_Actor-Critic/tmp
+Soft_Actor-Critic/logs
+Soft_Actor-Critic/stable_baseline/logs
+Soft_Actor-Critic/stable_baseline/models
+
+TD3/Stable_Baseline/logs
+TD3/Stable_Baseline/
+
 
 
 

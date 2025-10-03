@@ -17,7 +17,8 @@ class SmolVLMAgent:
     def __init__(
         self,
         model_name="HuggingFaceTB/SmolVLM-Instruct",
-        device=None
+        device=None,
+        camera_names=None,
     ):
         """
         Initialize SmolVLM agent.
@@ -48,6 +49,13 @@ class SmolVLMAgent:
         # Track state
         self.step_count = 0
         self.phase = "approach"  # approach, grasp, lift
+        # List of camera names to use for visual input. If multiple names are
+        # provided, images will be stitched side-by-side and sent to the VLM.
+        # Replace these names with camera names available in your MuJoCo model.
+        if camera_names is None:
+            self.camera_names = ["frontview"]
+        else:
+            self.camera_names = list(camera_names)
         
     def get_camera_image(self, env):
         """
@@ -59,17 +67,53 @@ class SmolVLMAgent:
         Returns:
             PIL Image
         """
-        # Get camera observation from the wrapped environment
-        camera_obs = env.env.sim.render(
-            width=512,
-            height=512,
-            camera_name="frontview",
-        )
-        
-        # Convert to PIL Image (robosuite returns as numpy array)
-        # Note: robosuite render returns (height, width, 3) in RGB
-        img = Image.fromarray(camera_obs)
-        return img
+        # Render each requested camera and return a single PIL Image. If more
+        # than one camera is provided, stitch images horizontally.
+        imgs = []
+        w, h = 512, 512
+
+        for cam in self.camera_names:
+            try:
+                # Prefer direct sim.render for deterministic camera selection
+                cam_obs = env.env.sim.render(
+                    width=w,
+                    height=h,
+                    camera_name=cam,
+                )
+                img = Image.fromarray(cam_obs)
+                imgs.append(img)
+            except Exception as e:
+                # Fall back to env.render if direct sim.render fails for some wrappers
+                try:
+                    # env.render may accept camera_name depending on robosuite version
+                    fallback = env.render(camera_name=cam)
+                    if isinstance(fallback, np.ndarray):
+                        imgs.append(Image.fromarray(fallback))
+                    elif isinstance(fallback, Image.Image):
+                        imgs.append(fallback)
+                    else:
+                        # Last resort: create a blank image placeholder
+                        print(f"Warning: could not render camera '{cam}': {e}")
+                        imgs.append(Image.new('RGB', (w, h), color=(128, 128, 128)))
+                except Exception:
+                    print(f"Warning: could not render camera '{cam}': {e} - inserting blank image")
+                    imgs.append(Image.new('RGB', (w, h), color=(128, 128, 128)))
+
+        if len(imgs) == 0:
+            # Shouldn't happen, but provide a gray image if all rendering failed
+            return Image.new('RGB', (w, h), color=(128, 128, 128))
+        elif len(imgs) == 1:
+            return imgs[0]
+        else:
+            # Stitch images side-by-side
+            total_w = w * len(imgs)
+            stitched = Image.new('RGB', (total_w, h))
+            for i, im in enumerate(imgs):
+                # Ensure each image matches expected size
+                if im.size != (w, h):
+                    im = im.resize((w, h))
+                stitched.paste(im, (i * w, 0))
+            return stitched
     
     def create_prompt(self, observation, action_space_size):
         """
@@ -302,9 +346,43 @@ if __name__ == '__main__':
     print(f"Action space: {env.action_space.shape}")
     
     # Initialize SmolVLM agent
+    # Example: use two cameras if your MJCF model exposes them (replace names as needed)
+    requested_cameras = ["frontview", "sideview"]
+
+    # Try to detect available camera names from the underlying MuJoCo model
+    available_cams = None
+    try:
+        # env.env is the unwrapped robosuite environment; sim.model may expose camera names
+        cam_names = []
+        sim = getattr(env, 'env', None)
+        if sim is not None and hasattr(sim, 'sim') and hasattr(sim.sim, 'model'):
+            # Some robosuite/MuJoCo bindings expose cams via sim.model.cam_names or id mapping
+            mj_model = sim.sim.model
+            if hasattr(mj_model, 'cam_names'):
+                cam_names = [n.decode('utf-8') if isinstance(n, bytes) else n for n in mj_model.cam_names]
+        available_cams = cam_names
+    except Exception:
+        available_cams = None
+
+    # Filter requested cameras against available cameras when possible
+    if available_cams:
+        selected_cameras = [c for c in requested_cameras if c in available_cams]
+        missing = [c for c in requested_cameras if c not in available_cams]
+        if missing:
+            print(f"Warning: Requested cameras not found in model: {missing}. Using: {selected_cameras}")
+        else:
+            print(f"All requested cameras available: {selected_cameras}")
+    else:
+        # Could not auto-detect; use requested list and warn user
+        selected_cameras = requested_cameras
+        print(f"Could not detect available cameras programmatically; assuming: {selected_cameras}")
+
     agent = SmolVLMAgent(
         model_name="HuggingFaceTB/SmolVLM-Instruct",
+        camera_names=selected_cameras,
     )
+
+    print(f"Using camera(s) for visual input: {agent.camera_names}")
     
     # Run episodes (same structure as test.py)
     n_games = 3
@@ -358,6 +436,18 @@ if __name__ == '__main__':
                     score += float(reward)
                 except Exception:
                     pass
+
+                # Try to render an on-screen window so the user can visualise the scene.
+                # This is wrapped in try/except because in some headless setups render
+                # may not be available or may raise EGL/OpenGL exceptions.
+                try:
+                    env.render()
+                    # small pause so the window has time to update
+                    time.sleep(0.02)
+                except Exception as e:
+                    # Don't spam logs; only show debug once per 100 steps
+                    if t % 100 == 0:
+                        print(f"env.render() failed (will continue headless): {e}")
 
                 if done:
                     break

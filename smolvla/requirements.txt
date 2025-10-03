@@ -1,0 +1,66 @@
+# Consolidated requirements for running SmolVLA + robosuite environment
+#
+# Notes:
+# - PyTorch (torch + torchvision) should usually be installed separately using
+#   the official PyTorch instructions so you can choose the correct CUDA build
+#   (or CPU-only). Installing torch before pip installing the rest avoids
+#   build-time import errors (e.g. flash-attn or other packages that import
+#   torch in setup.py).
+# - flash-attn is optional and usually requires a matching CUDA-enabled
+#   PyTorch and a proper build toolchain. Install it only if you have CUDA
+#   and the required toolchain.
+
+transformers>=4.46.0
+# Pin a minimum torch version; prefer installing torch explicitly as noted above
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow>=10.0.0
+accelerate>=0.20.0
+sentencepiece>=0.1.99
+
+# Optional (uncomment to enable; ensure CUDA + compatible torch is installed)
+# flash-attn>=2.0.0
+# num2words>=0.5.12
+
+# robosuite and core robotics stack
+robosuite=1.4.0
+numpy>=1.22.0
+opencv-python>=4.8.0
+# mujoco bindings - note: mujoco may require system-level installation or
+# use the pip package that matches your MuJoCo installation method
+mujoco>=2.3.0
+
+# Visualization / logging
+matplotlib>=3.7.0
+tensorboard>=2.13.0
+
+# Development / utils (optional)
+pyyaml>=6.0
+tqdm>=4.65.0
+
+# End of requirements
+# SmolVLM Integration Requirements
+# Add these to your existing requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu118
+# Core dependencies for SmolVLM
+transformers>=4.46.0
+torch>=2.0.0
+torchvision>=0.15.0
+Pillow>=10.0.0
+accelerate>=0.20.0
+sentencepiece>=0.1.99
+
+# Optional but recommended
+# flash-attn>=2.0.0  # For faster inference (requires CUDA)
+# num2words>=0.5.12  # Required by some SmolVLM versions
+
+# Existing robosuite dependencies (from original repo)
+robosuite>=1.4.0
+numpy>=1.22.0
+opencv-python>=4.8.0
+mujoco>=2.3.0
+
+# For visualization and logging
+matplotlib>=3.7.0
+tensorboard>=2.13.0
+

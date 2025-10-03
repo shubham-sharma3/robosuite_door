@@ -14,7 +14,7 @@ if __name__ == '__main__':
     else:
         pass
 
-    env_name = "Door"
+    env_name = "Lift"
 
     env = suite.make(
         env_name,
@@ -32,11 +32,11 @@ if __name__ == '__main__':
 
     env = GymWrapper(env)
 
-    actor_learning_rate = 0.001
+    actor_learning_rate = 0.0003
     critic_learning_rate = 0.001
-    batch_size = 128
-    layer1_size = 256
-    layer2_size = 128
+    batch_size = 2048
+    layer1_size = 512
+    layer2_size = 512
 
     agent = Agent(actor_learning_rate=actor_learning_rate, critic_learning_rate=critic_learning_rate, tau=0.005,
                   input_dims=env.observation_space.shape,
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     agent.load_models()
 
     for i in range(n_games):
-        observation, _ = env.reset()
+        observation= env.reset()
         # print(f"Observation  after reset: {observation}")
 
         done = False
@@ -58,7 +58,8 @@ if __name__ == '__main__':
 
         while not done:
             action = agent.choose_action(observation, validation=True)
-            next_observation, reward, done, extra, info = env.step(action)
+            step_result = env.step(action)
+            next_observation, reward, done, info = step_result if len(step_result) == 4 else step_result[:4]
             env.render()
             score += reward
 

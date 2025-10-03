@@ -163,7 +163,7 @@ cython_debug/
 
 TD3/logs
 
-TD3/tmp
+# TD3/tmp
 
 Trash
 
